@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>DPMods Update Dialog Controller</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- INSTANT NETLIFY BADGE KILLER -->
+    <style>
+        #nl-badge, .nl-badge, [aria-label*="Netlify"], [aria-controls="nl-card"], #netlify-badge, iframe[src*="netlify"] {
+            display: none !important; visibility: hidden !important; opacity: 0 !important;
+            pointer-events: none !important; position: absolute !important;
+            top: -9999px !important; left: -9999px !important; z-index: -99999 !important; width: 0 !important; height: 0 !important;
+        }
+    </style>
+    <script>
+        const killNetlify = () => {
+            if (document.body) {
+                new MutationObserver(() => {
+                    document.querySelectorAll('[id*="netlify"], [class*="netlify"], .nl-badge, #nl-badge').forEach(el => {
+                        el.style.setProperty('display', 'none', 'important'); el.remove();
+                    });
+                }).observe(document.body, { childList: true, subtree: true });
+            } else requestAnimationFrame(killNetlify);
+        };
+        killNetlify();
+    </script>
+
+    <style>
+        :root {
+            --accent: #0A8AD6;
+            --accent-purple: #9722FF;
+            --accent-grad: linear-gradient(135deg, #0A8AD6 0%, #9722FF 100%);
+            --accent-glow: 0 0 18px rgba(10, 138, 214, 0.45);
+            --accent-dim: rgba(10, 138, 214, 0.14);
+            --accent-border: rgba(10, 138, 214, 0.4);
+
+            --bg-dark: #07080d;
+            --bg-card: #10121a;
+            --bg-input: #161924;
+            
+            --border-light: rgba(255, 255, 255, 0.09);
+            --text-main: #ffffff;
+            --text-muted: #8b92a8;
+            
+            --danger: #ff4757;
+            --danger-dim: rgba(255, 71, 87, 0.14);
+            --success: #2ed573;
+            --success-dim: rgba(46, 213, 115, 0.15);
+            --warning: #ffa502;
+            --warning-dim: rgba(255, 165, 2, 0.14);
+            
+            color-scheme: dark;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        input, textarea, select { user-select: auto; font-family: inherit; } 
+        ::-webkit-scrollbar { display: none; }
+        
+        body { 
+            background: var(--bg-dark); color: var(--text-main); 
+            min-height: 100dvh; overflow-x: hidden; overscroll-behavior-y: contain; 
+        }
+
+        :focus-visible { outline: none; }
+        .app-container { max-width: 600px; margin: 0 auto; padding-bottom: 100px; display: flex; flex-direction: column; min-height: 100dvh; position: relative; }
+
+        /* --- DYNAMIC ISLAND SNACKBAR --- */
+        #dynamic-island {
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%) scale(0.85);
+            background: #171a26; color: #fff; border-radius: 14px; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            font-weight: 700; font-size: 0.85rem; letter-spacing: 0.4px; 
+            opacity: 0; visibility: hidden; z-index: 99999; pointer-events: none;
+            transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.12);
+            max-width: 92vw; text-align: center; border: 1px solid var(--accent-border);
+        }
+        #dynamic-island.show { opacity: 1; visibility: visible; transform: translateX(-50%) scale(1); }
+
+        /* --- LOGIN SCREEN --- */
+        #login-screen { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; text-align: center; z-index: 500; background: var(--bg-dark); transition: opacity 0.35s ease;}
+        .login-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 375px; }
+        .logo-icon {
+            width: 74px; height: 74px; border-radius: 22px; background: var(--accent-grad);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.2rem; color: #fff; margin-bottom: 14px; box-shadow: var(--accent-glow);
+        }
+        #login-screen h1 { font-size: 1.75rem; font-weight: 900; line-height: 1.15; margin-bottom: 4px; letter-spacing: -0.5px; text-transform: uppercase; }
+        .login-sub-brand { font-size: 0.7rem; font-weight: 800; color: #38bdf8; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 22px; }
+
+        .login-card { background: var(--bg-card); border-radius: 22px; padding: 22px; border: 1px solid var(--border-light); width: 100%; margin-bottom: 15px; box-shadow: 0 20px 45px rgba(0,0,0,0.6);}
+        
+        .input-group { margin-bottom: 14px; text-align: start; width: 100%; }
+        .input-group label { display: block; font-size: 0.62rem; color: var(--text-muted); font-weight: 800; margin-bottom: 6px; padding: 0 4px; text-transform: uppercase; letter-spacing: 0.8px;}
+        .input-group input, .input-group textarea, .input-group select { width: 100%; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 12px; padding: 13px 15px; color: #fff; font-size: 0.88rem; font-weight: 600; outline: none; transition: 0.2s;}
+        .input-group input:focus, .input-group textarea:focus, .input-group select:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(10, 138, 214, 0.25); }
+        .input-row { display: flex; gap: 10px; }
+        .input-row .input-group { flex: 1; margin-bottom: 10px; }
+
+        .login-status-box {
+            display: none; background: rgba(255, 71, 87, 0.12); border: 1px solid rgba(255, 71, 87, 0.4);
+            color: #ff6b81; padding: 11px 14px; border-radius: 12px; font-size: 0.74rem; font-weight: 700;
+            text-align: left; margin-bottom: 14px; line-height: 1.45; word-break: break-word;
+        }
+
+        .btn-primary { width: 100%; padding: 15px; border-radius: 14px; border: none; font-size: 0.92rem; font-weight: 900; cursor: pointer; transition: 0.2s; background: var(--accent-grad); color: #fff; box-shadow: var(--accent-glow); text-transform: uppercase; letter-spacing: 1px;}
+        .btn-primary:active { transform: scale(0.96); opacity: 0.88;}
+
+        .saved-url-item { background: var(--bg-card); border: 1px solid var(--border-light); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s;}
+        .saved-url-item:active { transform: scale(0.98); background: #181b28; }
+
+        /* --- HEADER --- */
+        .page-header { padding: 34px 20px 14px; position: sticky; top: 0; background: rgba(7,8,13,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 50; border-bottom: 1px solid var(--border-light); }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .app-main-title { font-size: 1.45rem; font-weight: 900; letter-spacing: -0.5px; color: #fff; text-transform: uppercase; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;}
+        .brand-pill { background: var(--accent-grad); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 4px 10px; border-radius: 10px; letter-spacing: 0.8px; }
+        
+        .secure-badge { background: rgba(46, 213, 115, 0.12); border: 1px solid rgba(46, 213, 115, 0.35); color: var(--success); padding: 5px 12px; border-radius: 20px; font-size: 0.62rem; font-weight: 800; display: flex; align-items: center; gap: 6px; letter-spacing: 1px; flex-shrink: 0;}
+        .secure-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; box-shadow: 0 0 6px var(--success); }
+
+        .header-sub { display: flex; justify-content: space-between; align-items: center; }
+        .sync-text { font-size: 0.68rem; color: #38bdf8; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 10px;}
+        
+        .disconnect-btn { background: transparent; border: 1px solid rgba(255, 71, 87, 0.4); color: var(--danger); padding: 5px 12px; border-radius: 12px; font-size: 0.65rem; font-weight: 800; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s;}
+        .disconnect-btn:active { background: var(--danger-dim); }
+
+        .content-area { padding: 14px 20px 0; display: flex; flex-direction: column; gap: 14px; }
+        .ios-card { background: var(--bg-card); border-radius: 18px; padding: 18px; border: 1px solid var(--border-light); }
+
+        /* --- EXACT FROSTED GLASS UPDATE DIALOG PREVIEW --- */
+        .preview-stage {
+            position: relative; width: 100%; padding: 38px 16px 24px;
+            border-radius: 24px;
+            background: radial-gradient(circle at 20% 20%, rgba(10, 138, 214, 0.16), transparent 55%),
+                        radial-gradient(circle at 85% 85%, rgba(151, 34, 255, 0.2), transparent 55%),
+                        #0a0b10;
+            border: 1px solid var(--border-light);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .pv-glass-dialog {
+            position: relative; width: 100%; max-width: 340px;
+            border-radius: 26px; padding: 42px 20px 22px;
+            background: linear-gradient(155deg, rgba(135, 160, 190, 0.22) 0%, rgba(28, 32, 46, 0.72) 55%, rgba(62, 44, 88, 0.55) 100%);
+            backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+            border: 1.4px solid rgba(255, 255, 255, 0.32);
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+            text-align: center;
+        }
+        .pv-triangle-badge {
+            position: absolute; top: -27px; left: 50%; transform: translateX(-50%);
+            width: 58px; height: 52px;
+            display: flex; align-items: center; justify-content: center;
+            filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6));
+        }
+        #pv-title {
+            font-size: 1.45rem; font-weight: 800; line-height: 1.25; margin-bottom: 10px;
+            color: #ffffff; letter-spacing: -0.2px;
+        }
+        #pv-message {
+            font-size: 0.88rem; font-weight: 500; line-height: 1.45; color: rgba(255, 255, 255, 0.92);
+            margin-bottom: 22px; padding: 0 6px;
+        }
+        .pv-btn-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;
+        }
+        .pv-btn-left {
+            height: 48px; border-radius: 15px;
+            background: linear-gradient(180deg, rgba(150, 155, 170, 0.32) 0%, rgba(45, 48, 62, 0.65) 100%);
+            border: 1.2px solid rgba(255, 255, 255, 0.35);
+            color: #ffffff; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.5px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            text-transform: uppercase;
+        }
+        .pv-btn-right {
+            height: 48px; border-radius: 15px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 45%), #0A8AD6;
+            border: 1.2px solid rgba(255, 255, 255, 0.45);
+            color: #ffffff; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.5px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 18px rgba(10, 138, 214, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .expiry-status-strip {
+            margin-top: 14px; display: inline-flex; align-items: center; gap: 7px;
+            padding: 6px 14px; border-radius: 20px; font-size: 0.68rem; font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .expiry-status-strip.active { background: var(--success-dim); color: var(--success); border: 1px solid rgba(46, 213, 115, 0.35); }
+        .expiry-status-strip.expired { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.4); }
+
+        /* SQUARE CHECKBOX */
+        .sq-checkbox {
+            appearance: none; width: 22px; height: 22px; background: var(--bg-input);
+            border: 2px solid rgba(255,255,255,0.25); border-radius: 6px; cursor: pointer;
+            position: relative; transition: 0.2s; outline: none; flex-shrink: 0;
+        }
+        .sq-checkbox:checked { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(10, 138, 214, 0.5);}
+        .sq-checkbox:checked::after {
+            content: ''; position: absolute; left: 6px; top: 1px;
+            width: 5px; height: 11px; border: solid #fff;
+            border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+        }
+
+        .toggle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .toggle-tile {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light);
+            border-radius: 12px; padding: 11px 8px;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            cursor: pointer; text-align: center;
+        }
+        .toggle-tile span { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #d1d5db; }
+
+        .quick-days-row { display: flex; gap: 6px; margin-top: 8px; }
+        .q-day-btn { flex: 1; background: var(--accent-dim); border: 1px solid var(--accent-border); color: #7dd3fc; padding: 8px 4px; border-radius: 8px; font-size: 0.66rem; font-weight: 800; cursor: pointer; text-align: center;}
+        .q-day-btn:active { background: var(--accent); color: #fff; }
+        .q-day-btn.red { background: var(--danger-dim); border-color: rgba(255, 71, 87, 0.35); color: var(--danger); }
+
+        /* STICKY BOTTOM SAVE BAR */
+        .sticky-save-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(10, 11, 16, 0.94); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+            border-top: 1px solid var(--border-light); padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+            z-index: 900; display: none; justify-content: center;
+        }
+        .sticky-save-inner { width: 100%; max-width: 560px; display: flex; gap: 10px; }
+        .btn-copy-json {
+            width: 52px; height: 50px; border-radius: 14px; background: var(--bg-input);
+            border: 1px solid var(--border-light); color: #7dd3fc; font-size: 1.05rem;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; flex-shrink: 0;
+        }
+        .btn-copy-json:active { transform: scale(0.94); }
+
+        .watermark { text-align: center; font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.22); letter-spacing: 2px; text-transform: uppercase; padding: 14px 0 10px; pointer-events: none; }
+    </style>
+</head>
+<body dir="ltr">
+
+    <!-- DYNAMIC ISLAND -->
+    <div id="dynamic-island"><i id="di-icon" class="fas fa-check-circle"></i> <span id="di-msg"></span></div>
+
+    <!-- FIREBASE LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="login-wrapper">
+            <div class="logo-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h1>UPDATE DIALOG</h1>
+            <div class="login-sub-brand">CONTROL PANEL • DPMODS</div>
+            
+            <div class="login-card">
+                <div class="input-group">
+                    <label>Firebase Database URL</label>
+                    <input type="text" id="auth-url" placeholder="https://your-db-default-rtdb.firebaseio.com" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="input-group">
+                    <label>Database Secret / Token (Optional if Public)</label>
+                    <input type="password" id="auth-secret" placeholder="Paste Secret Token (or leave empty)" autocomplete="off">
+                </div>
+                <div id="login-status-box" class="login-status-box"></div>
+                <button id="login-btn" class="btn-primary" onclick="login()" style="margin-top: 4px;">CONNECT DATABASE</button>
+                <button id="force-open-btn" onclick="forceBypassLogin()" style="display:none; width:100%; margin-top:10px; padding:13px; border-radius:12px; background:rgba(46,213,115,0.12); border:1px solid rgba(46,213,115,0.4); color:var(--success); font-weight:800; font-size:0.75rem; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px;">
+                    <i class="fas fa-unlock"></i> FORCE OPEN & PUSH JSON
+                </button>
+            </div>
+            
+            <div id="saved-connections" style="width: 100%; text-align: start; display: none;">
+                <div style="display:flex; justify-content:space-between; margin: 10px 4px 8px;">
+                    <span style="color:var(--text-muted); font-size:0.68rem; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Saved Connections</span>
+                    <span style="color:var(--danger); font-size:0.68rem; font-weight:800; cursor:pointer; letter-spacing:1px;" onclick="clearAllHistory()">CLEAR</span>
+                </div>
+                <div id="saved-url-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app-container" id="main-app" style="display: none;">
+        
+        <div class="page-header">
+            <div class="header-top">
+                <div class="app-main-title">
+                    <span>UPDATE PANEL</span>
+                    <span class="brand-pill">DPMODS</span>
+                </div>
+                <div class="secure-badge"><div class="secure-dot"></div> LIVE</div>
+            </div>
+            <div class="header-sub">
+                <div class="sync-text">
+                    <span>REALTIME DIALOG SYNC</span>
+                    <i class="fas fa-sync-alt" id="reload-icon" style="cursor:pointer; color:#fff; font-size:0.8rem;" onclick="fetchDatabase()" title="Refresh"></i>
+                </div>
+                <div class="disconnect-btn" onclick="logout()"><i class="fas fa-power-off"></i> DISCONNECT</div>
+            </div>
+        </div>
+
+        <div class="content-area">
+
+            <!-- LIVE GLASSMORPHISM DIALOG PREVIEW -->
+            <div class="preview-stage">
+                <div class="pv-glass-dialog">
+                    <!-- Floating Frosted Warning Triangle SVG -->
+                    <div class="pv-triangle-badge">
+                        <svg viewBox="0 0 64 56" width="58" height="52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="triGrad" x1="32" y1="2" x2="32" y2="54" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#8da2b8" stop-opacity="0.85"/>
+                                    <stop offset="100%" stop-color="#1e4d7a" stop-opacity="0.88"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M27.6 5.2C29.5 1.9 34.5 1.9 36.4 5.2L60.2 46.8C62.1 50.1 59.7 54 55.8 54H8.2C4.3 54 1.9 50.1 3.8 46.8L27.6 5.2Z" fill="url(#triGrad)" stroke="rgba(255,255,255,0.75)" stroke-width="2.2"/>
+                            <rect x="29.5" y="18" width="5" height="17" rx="2.5" fill="#ffffff"/>
+                            <circle cx="32" cy="42.5" r="3" fill="#ffffff"/>
+                        </svg>
+                    </div>
+
+                    <div id="pv-title"><font color="#9722FF">Expired App</font></div>
+                    <div id="pv-message">This app version has expired. Please Renew.</div>
+
+                    <div class="pv-btn-row">
+                        <div class="pv-btn-left" id="pv-left-btn">EXIT</div>
+                        <div class="pv-btn-right" id="pv-right-btn">RENEW NOW</div>
+                    </div>
+                </div>
+
+                <div class="expiry-status-strip active" id="pv-expiry-strip">
+                    <i class="far fa-clock"></i> <span id="pv-expiry-status-text">Checking expiry...</span>
+                </div>
+            </div>
+
+            <!-- CORE TOGGLES (enabled, force_show, cancelable) -->
+            <div class="ios-card">
+                <h3 style="margin-bottom: 12px; color:#7dd3fc; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-toggle-on"></i> Dialog Control Switches
+                </h3>
+                <div class="toggle-grid">
+                    <label class="toggle-tile">
+                        <input type="checkbox" class="sq-checkbox" id="cfg-enabled">
+                        <span>enabled</span>
+                    </label>
+                    <label class="toggle-tile">
+                        <input type="checkbox" class="sq-checkbox" id="cfg-force-show">
+                        <span>force_show</span>
+                    </label>
+                    <label class="toggle-tile">
+                        <input type="checkbox" class="sq-checkbox" id="cfg-cancelable">
+                        <span>cancelable</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- EXPIRY DATE & TIMEZONE -->
+            <div class="ios-card">
+                <h3 style="margin-bottom: 14px; color:#7dd3fc; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-calendar-alt"></i> Expiry Schedule & Timezone
+                </h3>
+
+                <div class="input-group">
+                    <label>EXPIRY DATE & TIME (YYYY-MM-DD HH:mm:ss)</label>
+                    <input type="text" id="cfg-expiry-str" oninput="syncFromRawExpiry()" placeholder="2026-11-25 23:59:59" style="font-family:'JetBrains Mono', monospace; color:#7dd3fc;">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group" style="margin-bottom:6px;">
+                        <label>QUICK DATE PICKER</label>
+                        <input type="datetime-local" id="cfg-expiry-picker" step="1" onchange="syncFromDatePicker()" style="font-family:'JetBrains Mono', monospace; font-size:0.78rem;">
+                    </div>
+                    <div class="input-group" style="margin-bottom:6px;">
+                        <label>TIMEZONE</label>
+                        <input type="text" id="cfg-timezone" value="Asia/Kolkata" placeholder="Asia/Kolkata" style="font-family:'JetBrains Mono', monospace;">
+                    </div>
+                </div>
+
+                <div class="quick-days-row">
+                    <div class="q-day-btn" onclick="setExpiryOffset(1)">+1 Day</div>
+                    <div class="q-day-btn" onclick="setExpiryOffset(7)">+7 Days</div>
+                    <div class="q-day-btn" onclick="setExpiryOffset(30)">+30 Days</div>
+                    <div class="q-day-btn red" onclick="setExpiryOffset(-1)">Expire Now</div>
+                </div>
+            </div>
+
+            <!-- DIALOG TEXTS, BUTTONS & COLORS -->
+            <div class="ios-card">
+                <h3 style="margin-bottom: 14px; color:#7dd3fc; font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-pen-nib"></i> Dialog Texts, Styling & Action URL
+                </h3>
+
+                <div class="input-group">
+                    <label>TITLE (HTML SUPPORTED: &lt;font color='#9722FF'&gt;...&lt;/font&gt;)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="color" id="pick-title-color" value="#9722FF" style="width:46px; height:46px; padding:3px; cursor:pointer; flex-shrink:0;" title="Pick Title Font Color" onchange="applyTitleColor(this.value)">
+                        <input type="text" id="cfg-title" oninput="syncToPreview()" placeholder="<font color='#9722FF'>Expired App</font>" style="font-family:'JetBrains Mono', monospace; font-size:0.82rem;">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>MESSAGE (message)</label>
+                    <textarea id="cfg-message" rows="2" oninput="syncToPreview()" placeholder="This app version has expired. Please Renew."></textarea>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>LEFT BUTTON (left_button_text)</label>
+                        <input type="text" id="cfg-left-btn" oninput="syncToPreview()" placeholder="EXIT">
+                    </div>
+                    <div class="input-group">
+                        <label>RIGHT BUTTON (right_button_text)</label>
+                        <input type="text" id="cfg-right-btn" oninput="syncToPreview()" placeholder="RENEW NOW">
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>RIGHT BUTTON COLOR (button_color)</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="color" id="pick-btn-color" value="#0A8AD6" style="width:46px; height:46px; padding:3px; cursor:pointer; flex-shrink:0;" onchange="document.getElementById('cfg-btn-color').value=this.value.toUpperCase(); syncToPreview();">
+                            <input type="text" id="cfg-btn-color" value="#0A8AD6" oninput="syncToPreview()" style="font-family:'JetBrains Mono', monospace; text-transform:uppercase;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom:4px;">
+                    <label>UPDATE / RENEW URL (update_url)</label>
+                    <input type="text" id="cfg-update-url" placeholder="https://t.me/dp_mods">
+                </div>
+            </div>
+
+            <div class="watermark">UPDATE CONTROLLER BY <span style="color:#38bdf8;">DPMODS</span></div>
+        </div>
+    </div>
+
+    <!-- STICKY BOTTOM SAVE BAR -->
+    <div class="sticky-save-bar" id="sticky-save-bar">
+        <div class="sticky-save-inner">
+            <button class="btn-copy-json" onclick="copyCurrentJson()" title="Copy Raw JSON"><i class="fas fa-code"></i></button>
+            <button class="btn-primary" id="save-btn" onclick="saveConfig()"><i class="fas fa-cloud-upload-alt"></i> SAVE TO FIREBASE</button>
+        </div>
+    </div>
+
+    <script>
+        function getStorage(key, fallback = null) { try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; } }
+        function setStorage(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
+
+        const DEFAULT_DATA = {
+            button_color: "#0A8AD6",
+            cancelable: false,
+            enabled: true,
+            expiry_date: "2026-11-25 23:59:59",
+            force_show: true,
+            left_button_text: "EXIT",
+            message: "This app version has expired. Please Renew.",
+            right_button_text: "RENEW NOW",
+            timezone: "Asia/Kolkata",
+            title: "<font color='#9722FF'>Expired App</font>",
+            update_url: "https://t.me/dp_mods"
+        };
+
+        let DB_URL = "";
+        let DB_SECRET = "";
+        let DB = { ...DEFAULT_DATA };
+
+        window.onload = () => {
+            const lastUrl = getStorage('dp_upd_url', '');
+            const lastSecret = getStorage('dp_upd_secret', '');
+            if (lastUrl) document.getElementById('auth-url').value = lastUrl;
+            if (lastSecret) document.getElementById('auth-secret').value = lastSecret;
+            renderSavedUrls();
+        };
+
+        function sanitizeUrl(raw) {
+            if (!raw) return "";
+            let u = raw.replace(/[\s\u200B-\u200D\uFEFF"']/g, '');
+            const consoleMatch = u.match(/\/database\/([a-zA-Z0-9-]+)\/data/i);
+            if (consoleMatch && consoleMatch[1]) {
+                return `https://${consoleMatch[1]}.firebaseio.com`;
+            }
+            if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+            u = u.replace(/^http:\/\//i, 'https://');
+            u = u.split('?')[0].replace(/\/\.json$/i, '').replace(/\.json$/i, '').replace(/\/+$/, '');
+            return u;
+        }
+
+        function sanitizeToken(raw) {
+            return raw ? raw.replace(/[\s\u200B-\u200D\uFEFF"']/g, '') : "";
+        }
+
+        function buildFirebaseUrl() {
+            const authQuery = DB_SECRET ? `?auth=${DB_SECRET}` : '';
+            return `${DB_URL}.json${authQuery}`;
+        }
+
+        function renderSavedUrls() {
+            let savedConns = [];
+            try { savedConns = JSON.parse(getStorage('dp_upd_conns', '[]')) || []; } catch(e) {}
+            const container = document.getElementById('saved-connections');
+            const list = document.getElementById('saved-url-list');
+            list.innerHTML = "";
+            if (savedConns.length === 0) { container.style.display = 'none'; return; }
+            
+            container.style.display = 'block';
+            savedConns.forEach((conn, index) => {
+                const displayHost = conn.url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+                list.innerHTML += `
+                    <div class="saved-url-item" onclick="setAndConnectByIndex(${index})">
+                        <div style="flex:1; overflow:hidden;">
+                            <div style="font-size:0.82rem; font-weight:800; color:#fff; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                                <i class="fas fa-database" style="color:var(--accent); margin-right:8px;"></i>${displayHost}
+                            </div>
+                        </div>
+                        <div style="background:var(--danger-dim); color:var(--danger); width:30px; height:30px; border-radius:8px; display:flex; justify-content:center; align-items:center;" onclick="removeSavedUrl(${index}, event)">
+                            <i class="fas fa-trash" style="font-size:0.75rem;"></i>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function setAndConnectByIndex(index) {
+            let savedConns = JSON.parse(getStorage('dp_upd_conns', '[]')) || [];
+            if (savedConns[index]) {
+                document.getElementById('auth-url').value = savedConns[index].url;
+                document.getElementById('auth-secret').value = savedConns[index].secret || "";
+                login();
+            }
+        }
+
+        function removeSavedUrl(index, event) {
+            if (event) event.stopPropagation();
+            let savedConns = JSON.parse(getStorage('dp_upd_conns', '[]')) || [];
+            savedConns.splice(index, 1);
+            setStorage('dp_upd_conns', JSON.stringify(savedConns));
+            renderSavedUrls();
+        }
+
+        function clearAllHistory() {
+            setStorage('dp_upd_conns', '[]');
+            renderSavedUrls();
+            showIsland("History Cleared", "success");
+        }
+
+        function saveConnectionToHistory() {
+            setStorage('dp_upd_url', DB_URL);
+            setStorage('dp_upd_secret', DB_SECRET);
+            let savedConns = JSON.parse(getStorage('dp_upd_conns', '[]')) || [];
+            const idx = savedConns.findIndex(c => c.url === DB_URL);
+            if (idx !== -1) savedConns.splice(idx, 1);
+            savedConns.unshift({ url: DB_URL, secret: DB_SECRET });
+            if (savedConns.length > 5) savedConns.pop();
+            setStorage('dp_upd_conns', JSON.stringify(savedConns));
+        }
+
+        function openDashboard() {
+            const loginScreen = document.getElementById('login-screen');
+            loginScreen.style.opacity = '0';
+            loginScreen.style.pointerEvents = 'none';
+            setTimeout(() => {
+                loginScreen.style.display = 'none';
+                document.getElementById('main-app').style.display = 'flex';
+                document.getElementById('sticky-save-bar').style.display = 'flex';
+                loadFieldsFromDB();
+            }, 220);
+        }
+
+        async function login() {
+            const btn = document.getElementById('login-btn');
+            const statusBox = document.getElementById('login-status-box');
+            const forceBtn = document.getElementById('force-open-btn');
+            statusBox.style.display = 'none';
+
+            DB_URL = sanitizeUrl(document.getElementById('auth-url').value);
+            DB_SECRET = sanitizeToken(document.getElementById('auth-secret').value);
+
+            document.getElementById('auth-url').value = DB_URL;
+            document.getElementById('auth-secret').value = DB_SECRET;
+
+            if (!DB_URL) return showIsland("Enter Firebase URL!", "error");
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> CONNECTING...`;
+
+            try {
+                let res = await fetch(buildFirebaseUrl());
+                if (!res.ok && DB_SECRET) {
+                    const pubRes = await fetch(`${DB_URL}.json`);
+                    if (pubRes.ok) { res = pubRes; DB_SECRET = ""; }
+                }
+                if (!res.ok) {
+                    const errBody = await res.json().catch(() => ({}));
+                    throw new Error(errBody.error || `HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                if (data && typeof data === 'object') {
+                    DB = { ...DEFAULT_DATA, ...data };
+                } else {
+                    DB = { ...DEFAULT_DATA };
+                    await pushToFirebase(DB);
+                }
+
+                saveConnectionToHistory();
+                openDashboard();
+                showIsland("Connected Successfully!", "success");
+            } catch (e) {
+                btn.innerHTML = "CONNECT DATABASE";
+                statusBox.style.display = 'block';
+                forceBtn.style.display = 'block';
+                statusBox.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <b>Fetch Failed (${e.message})</b><br><small style="color:var(--text-muted); display:block; margin-top:4px;">Tap <b>"FORCE OPEN & PUSH JSON"</b> below to load the panel immediately.</small>`;
+                showIsland("Connection Failed!", "error");
+            }
+        }
+
+        async function forceBypassLogin() {
+            DB_URL = sanitizeUrl(document.getElementById('auth-url').value);
+            DB_SECRET = sanitizeToken(document.getElementById('auth-secret').value);
+            saveConnectionToHistory();
+            DB = { ...DEFAULT_DATA };
+            pushToFirebase(DB).catch(() => {});
+            openDashboard();
+            showIsland("Opened & Synced!", "success", "fa-unlock");
+        }
+
+        async function fetchDatabase() {
+            const icon = document.getElementById('reload-icon');
+            icon.classList.add('fa-spin');
+            try {
+                const res = await fetch(buildFirebaseUrl());
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && typeof data === 'object') {
+                        DB = { ...DEFAULT_DATA, ...data };
+                        loadFieldsFromDB();
+                        showIsland("Database Refreshed!", "success", "fa-sync");
+                    }
+                }
+            } catch (e) { showIsland("Sync Error", "error"); }
+            setTimeout(() => icon.classList.remove('fa-spin'), 400);
+        }
+
+        async function pushToFirebase(payload) {
+            if (!DB_URL) return true;
+            const target = buildFirebaseUrl();
+            try {
+                const res = await fetch(target, { method: 'PUT', body: JSON.stringify(payload) });
+                if (res.ok) return true;
+            } catch (e) {}
+
+            try {
+                const sep = target.includes('?') ? '&' : '?';
+                const res2 = await fetch(`${target}${sep}x-http-method-override=PUT`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                return res2.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function logout() { location.reload(); }
+
+        /* --- FIELDS & LIVE PREVIEW SYNC --- */
+        function loadFieldsFromDB() {
+            document.getElementById('cfg-enabled').checked = DB.enabled !== false;
+            document.getElementById('cfg-force-show').checked = DB.force_show === true;
+            document.getElementById('cfg-cancelable').checked = DB.cancelable === true;
+
+            document.getElementById('cfg-expiry-str').value = DB.expiry_date || "2026-11-25 23:59:59";
+            document.getElementById('cfg-timezone').value = DB.timezone || "Asia/Kolkata";
+
+            document.getElementById('cfg-title').value = DB.title || "<font color='#9722FF'>Expired App</font>";
+            document.getElementById('cfg-message').value = DB.message || "This app version has expired. Please Renew.";
+            document.getElementById('cfg-left-btn').value = DB.left_button_text || "EXIT";
+            document.getElementById('cfg-right-btn').value = DB.right_button_text || "RENEW NOW";
+            document.getElementById('cfg-btn-color').value = (DB.button_color || "#0A8AD6").toUpperCase();
+            document.getElementById('cfg-update-url').value = DB.update_url || "https://t.me/dp_mods";
+
+            // Extract font color if present in title
+            const colorMatch = (DB.title || "").match(/color=['"](#[0-9a-fA-F]{6})['"]/i);
+            if (colorMatch && colorMatch[1]) {
+                document.getElementById('pick-title-color').value = colorMatch[1];
+            }
+
+            syncFromRawExpiry();
+            syncToPreview();
+        }
+
+        function applyTitleColor(hexColor) {
+            const titleInp = document.getElementById('cfg-title');
+            const val = titleInp.value.trim();
+            if (/color=['"]#[0-9a-fA-F]{6}['"]/i.test(val)) {
+                titleInp.value = val.replace(/color=['"]#[0-9a-fA-F]{6}['"]/i, `color='${hexColor.toUpperCase()}'`);
+            } else {
+                const plainText = val.replace(/<[^>]*>/g, '') || "Expired App";
+                titleInp.value = `<font color='${hexColor.toUpperCase()}'>${plainText}</font>`;
+            }
+            syncToPreview();
+        }
+
+        function syncFromRawExpiry() {
+            const raw = document.getElementById('cfg-expiry-str').value.trim();
+            const m = raw.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})(?::(\d{2}))?$/);
+            if (m) {
+                const sec = m[3] || "59";
+                document.getElementById('cfg-expiry-picker').value = `${m[1]}T${m[2]}:${sec}`;
+            }
+            updateExpiryBadge(raw);
+        }
+
+        function syncFromDatePicker() {
+            const val = document.getElementById('cfg-expiry-picker').value; // YYYY-MM-DDTHH:mm(:ss)
+            if (!val) return;
+            const [dPart, tPart] = val.split('T');
+            const fullTime = tPart.length === 5 ? `${tPart}:59` : tPart;
+            const formatted = `${dPart} ${fullTime}`;
+            document.getElementById('cfg-expiry-str').value = formatted;
+            updateExpiryBadge(formatted);
+        }
+
+        function setExpiryOffset(days) {
+            const dt = new Date();
+            dt.setDate(dt.getDate() + days);
+            const yyyy = dt.getFullYear();
+            const mm = String(dt.getMonth() + 1).padStart(2, '0');
+            const dd = String(dt.getDate()).padStart(2, '0');
+            const formatted = days < 0
+                ? `${yyyy}-${mm}-${dd} 00:00:00`
+                : `${yyyy}-${mm}-${dd} 23:59:59`;
+            document.getElementById('cfg-expiry-str').value = formatted;
+            syncFromRawExpiry();
+        }
+
+        function updateExpiryBadge(dateStr) {
+            const strip = document.getElementById('pv-expiry-strip');
+            const txt = document.getElementById('pv-expiry-status-text');
+            const dt = new Date(dateStr.replace(' ', 'T'));
+            if (isNaN(dt.getTime())) {
+                strip.className = "expiry-status-strip expired";
+                txt.innerText = "Invalid Date Format";
+                return;
+            }
+            const diffMs = dt.getTime() - Date.now();
+            if (diffMs <= 0) {
+                strip.className = "expiry-status-strip expired";
+                txt.innerText = `EXPIRED (${dateStr})`;
+            } else {
+                const days = Math.floor(diffMs / 86400000);
+                const hrs = Math.floor((diffMs % 86400000) / 3600000);
+                strip.className = "expiry-status-strip active";
+                txt.innerText = `ACTIVE • ${days}d ${hrs}h remaining`;
+            }
+        }
+
+        function syncToPreview() {
+            const titleHtml = document.getElementById('cfg-title').value || "Expired App";
+            const msg = document.getElementById('cfg-message').value || "";
+            const leftTxt = document.getElementById('cfg-left-btn').value || "EXIT";
+            const rightTxt = document.getElementById('cfg-right-btn').value || "RENEW NOW";
+            const btnHex = document.getElementById('cfg-btn-color').value.trim() || "#0A8AD6";
+
+            document.getElementById('pv-title').innerHTML = titleHtml;
+            document.getElementById('pv-message').innerText = msg;
+            document.getElementById('pv-left-btn').innerText = leftTxt;
+            document.getElementById('pv-right-btn').innerText = rightTxt;
+
+            if (/^#[0-9A-Fa-f]{6}$/.test(btnHex)) {
+                document.getElementById('pick-btn-color').value = btnHex;
+                const rBtn = document.getElementById('pv-right-btn');
+                rBtn.style.background = `linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 48%), ${btnHex}`;
+                rBtn.style.boxShadow = `0 6px 18px ${btnHex}66, inset 0 1px 0 rgba(255,255,255,0.4)`;
+            }
+        }
+
+        function buildPayload() {
+            return {
+                button_color: document.getElementById('cfg-btn-color').value.trim().toUpperCase() || "#0A8AD6",
+                cancelable: document.getElementById('cfg-cancelable').checked,
+                enabled: document.getElementById('cfg-enabled').checked,
+                expiry_date: document.getElementById('cfg-expiry-str').value.trim(),
+                force_show: document.getElementById('cfg-force-show').checked,
+                left_button_text: document.getElementById('cfg-left-btn').value.trim(),
+                message: document.getElementById('cfg-message').value.trim(),
+                right_button_text: document.getElementById('cfg-right-btn').value.trim(),
+                timezone: document.getElementById('cfg-timezone').value.trim() || "Asia/Kolkata",
+                title: document.getElementById('cfg-title').value.trim(),
+                update_url: document.getElementById('cfg-update-url').value.trim()
+            };
+        }
+
+        async function saveConfig() {
+            const btn = document.getElementById('save-btn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> SAVING...`;
+
+            const payload = buildPayload();
+            DB = payload;
+            const ok = await pushToFirebase(payload);
+
+            btn.innerHTML = orig;
+            if (ok) {
+                showIsland("Update Dialog Saved!", "success", "fa-check-circle");
+            } else {
+                showIsland("Save Failed! Check Connection", "error");
+            }
+        }
+
+        function copyCurrentJson() {
+            const jsonStr = JSON.stringify(buildPayload(), null, 2);
+            const el = document.createElement('textarea');
+            el.value = jsonStr;
+            document.body.appendChild(el);
+            el.select();
+            try { document.execCommand('copy'); showIsland("JSON Copied!", "success", "fa-code"); } catch (e) {}
+            document.body.removeChild(el);
+        }
+
+        let islandTimeout;
+        function showIsland(msg, type = "success", customIcon = null) {
+            const island = document.getElementById('dynamic-island');
+            island.innerHTML = `<i class="fas ${customIcon || (type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle')}"></i> ${msg}`;
+            island.style.color = type === "success" ? "#38bdf8" : "var(--danger)";
+            island.classList.add('show');
+            clearTimeout(islandTimeout);
+            islandTimeout = setTimeout(() => { island.classList.remove('show'); }, 2600); 
+        }
+    </script>
+</body>
+</html>
