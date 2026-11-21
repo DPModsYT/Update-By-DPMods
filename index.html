@@ -487,9 +487,10 @@
             return raw ? raw.replace(/[\s\u200B-\u200D\uFEFF"']/g, '') : "";
         }
 
+        // FIXED: Added missing '/' before '.json'
         function buildFirebaseUrl() {
             const authQuery = DB_SECRET ? `?auth=${DB_SECRET}` : '';
-            return `${DB_URL}.json${authQuery}`;
+            return `${DB_URL}/.json${authQuery}`;
         }
 
         function renderSavedUrls() {
@@ -582,7 +583,7 @@
             try {
                 let res = await fetch(buildFirebaseUrl());
                 if (!res.ok && DB_SECRET) {
-                    const pubRes = await fetch(`${DB_URL}.json`);
+                    const pubRes = await fetch(`${DB_URL}/.json`);
                     if (pubRes.ok) { res = pubRes; DB_SECRET = ""; }
                 }
                 if (!res.ok) {
@@ -675,7 +676,6 @@
             document.getElementById('cfg-btn-color').value = (DB.button_color || "#0A8AD6").toUpperCase();
             document.getElementById('cfg-update-url').value = DB.update_url || "https://t.me/dp_mods";
 
-            // Extract font color if present in title
             const colorMatch = (DB.title || "").match(/color=['"](#[0-9a-fA-F]{6})['"]/i);
             if (colorMatch && colorMatch[1]) {
                 document.getElementById('pick-title-color').value = colorMatch[1];
@@ -708,7 +708,7 @@
         }
 
         function syncFromDatePicker() {
-            const val = document.getElementById('cfg-expiry-picker').value; // YYYY-MM-DDTHH:mm(:ss)
+            const val = document.getElementById('cfg-expiry-picker').value;
             if (!val) return;
             const [dPart, tPart] = val.split('T');
             const fullTime = tPart.length === 5 ? `${tPart}:59` : tPart;
